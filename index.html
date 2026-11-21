@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#040105" />
+<title>Galaxy of Love</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff4fa3' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,500;1,600&display=swap" rel="stylesheet" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+/* ==========================================================
+   GALAXY OF LOVE  ·  Liquid Glass  ·  Hitam + Pink
+   ========================================================== */
+@property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+:root {
+  --bg: #040105;
+  --pink: #ff4fa3;
+  --pink-hot: #ff2e93;
+  --pink-soft: #ffb6d9;
+  --pink-glow: rgba(255, 79, 163, .5);
+  --ink: #fff4fa;
+  --ink-dim: rgba(255, 238, 247, .72);
+  --ink-faint: rgba(255, 238, 247, .5);
+  --glass: linear-gradient(135deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,.04) 42%, rgba(255,79,163,.09) 100%);
+  --glass-line: rgba(255, 255, 255, .17);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --smooth: cubic-bezier(.22, 1, .36, 1);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --font-ui: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Playfair Display', 'Times New Roman', Georgia, serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); }
+body {
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none;
+  overscroll-behavior: none;
+}
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--pink); outline-offset: 3px; }
+
+/* ---------- Stage (WebGL) ---------- */
+#stage { position: fixed; inset: 0; height: 100vh; height: 100dvh; z-index: 0; background: radial-gradient(ellipse at 50% 45%, #14040e 0%, #040105 70%); }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.vignette {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(4,1,5,.62) 100%),
+    linear-gradient(to top, rgba(255,46,147,.07), transparent 32%);
+}
+
+/* ---------- Liquid glass ---------- */
+.glass {
+  position: relative; isolation: isolate; overflow: hidden;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(170%) brightness(1.06);
+  backdrop-filter: blur(20px) saturate(170%) brightness(1.06);
+  border: 1px solid var(--glass-line);
+  border-radius: 28px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -1px 0 rgba(255,255,255,.06),
+    inset 0 0 28px rgba(255,255,255,.05),
+    0 22px 60px -14px rgba(0,0,0,.75),
+    0 0 40px -10px rgba(255,79,163,.28);
+}
+/* kilau yang mengikuti jari / kursor */
+.glass::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(260px circle at var(--mx, 25%) var(--my, 0%), rgba(255,255,255,.24), transparent 62%);
+}
+/* bingkai pelangi pink yang berputar pelan */
+.glass::after {
+  content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; padding: 1.2px; pointer-events: none;
+  background: conic-gradient(from var(--ang), rgba(255,255,255,.7), rgba(255,79,163,0) 24%, rgba(255,79,163,.65) 50%, rgba(255,255,255,0) 76%, rgba(255,255,255,.7));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: .75; animation: spinAng 9s linear infinite;
+}
+@keyframes spinAng { to { --ang: 360deg; } }
+
+/* ---------- Tombol ---------- */
+.icon-btn {
+  position: relative; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--ink);
+  transition: transform .5s var(--spring), background .3s, color .3s, box-shadow .3s;
+}
+.icon-btn:hover { background: rgba(255,255,255,.12); }
+.icon-btn:active { transform: scale(.86); transition-duration: .12s; }
+.icon-btn[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, rgba(255,79,163,.85), rgba(255,46,147,.6)); box-shadow: 0 6px 22px -4px var(--pink-glow), inset 0 1px 0 rgba(255,255,255,.5); }
+.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ic-fill { fill: currentColor; stroke: none; }
+.icon-btn .ic-off { display: none; }
+.icon-btn[data-off="true"] .ic-on { display: none; }
+.icon-btn[data-off="true"] .ic-off { display: block; }
+
+.btn-primary {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 15px 30px; border-radius: 999px; font-weight: 700; font-size: 1rem; letter-spacing: .01em; color: #fff;
+  background: linear-gradient(135deg, #ff6bb4 0%, #ff2e93 55%, #d6167a 100%);
+  box-shadow: 0 12px 34px -8px var(--pink-glow), 0 0 0 1px rgba(255,255,255,.18) inset, 0 1.5px 0 rgba(255,255,255,.55) inset, 0 -8px 16px rgba(120,0,60,.28) inset;
+  transition: transform .55s var(--spring), box-shadow .3s, filter .3s;
+  overflow: hidden;
+}
+.btn-primary::after { /* kilau lewat */
+  content: ''; position: absolute; top: 0; bottom: 0; width: 46%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: skewX(-18deg); animation: sheen 3.4s ease-in-out infinite;
+}
+@keyframes sheen { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+.btn-primary:hover { transform: translateY(-2px) scale(1.03); filter: saturate(1.1); box-shadow: 0 16px 40px -8px var(--pink-glow), 0 0 0 1px rgba(255,255,255,.2) inset, 0 1.5px 0 rgba(255,255,255,.6) inset; }
+.btn-primary:active { transform: scale(.93); transition-duration: .12s; }
+.btn-primary .ic { width: 18px; height: 18px; }
+
+/* ---------- Loader ---------- */
+#loader {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(ellipse at 50% 40%, #1b0613 0%, #040105 70%);
+  transition: opacity .9s var(--smooth), visibility .9s;
+}
+#loader.gone { opacity: 0; visibility: hidden; pointer-events: none; }
+.loader-card { width: min(340px, 100%); padding: 34px 28px 28px; text-align: center; }
+.loader-heart { width: 54px; height: 54px; margin: 0 auto 18px; color: var(--pink); filter: drop-shadow(0 0 16px var(--pink-glow)); animation: beat 1.3s ease-in-out infinite; }
+@keyframes beat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.18); } 28% { transform: scale(1); } 42% { transform: scale(1.12); } 70% { transform: scale(1); } }
+.loader-text { font-size: .95rem; color: var(--ink-dim); min-height: 1.4em; }
+.loader-bar { margin-top: 18px; height: 6px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.5); }
+.loader-bar i { display: block; height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, #ff8cc8, #ff2e93); box-shadow: 0 0 14px var(--pink-glow); transition: width .5s var(--smooth); }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: fixed; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 12px; pointer-events: none;
+  top: calc(var(--safe-t) + 14px); left: calc(var(--safe-l) + 14px); right: calc(var(--safe-r) + 14px);
+  opacity: 0; transform: translateY(-14px); transition: opacity .9s var(--smooth), transform .9s var(--smooth);
+}
+body.ready .topbar { opacity: 1; transform: none; }
+.brand { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 12px; border-radius: 999px; pointer-events: auto; transition: opacity .5s, transform .6s var(--spring); }
+.brand .ic { width: 18px; height: 18px; color: var(--pink); filter: drop-shadow(0 0 8px var(--pink-glow)); }
+.brand b { font-weight: 700; font-size: .95rem; letter-spacing: .01em; }
+.brand em { font-style: normal; font-size: .8rem; color: var(--ink-faint); }
+.tools { display: flex; gap: 2px; padding: 4px; border-radius: 999px; pointer-events: none; opacity: 0; transform: scale(.9); transform-origin: right top; transition: opacity .8s var(--smooth), transform .8s var(--spring); }
+body.started .tools { opacity: 1; transform: none; pointer-events: auto; }
+body.ui-hidden .brand { opacity: 0; transform: translateX(-10px); pointer-events: none; }
+
+/* ---------- Intro card ---------- */
+.intro {
+  position: fixed; z-index: 20; left: 50%; width: min(460px, calc(100% - 32px)); text-align: center; padding: 28px 26px 22px;
+  bottom: calc(var(--safe-b) + clamp(16px, 5vh, 52px));
+  opacity: 0; visibility: hidden; transform: translate(-50%, 36px) scale(.94); filter: blur(10px); pointer-events: none;
+  transition: opacity .9s var(--smooth), transform 1s var(--spring), filter .9s var(--smooth), visibility 0s linear 1s;
+}
+.intro.in { opacity: 1; visibility: visible; transform: translate(-50%, 0) scale(1); filter: none; pointer-events: auto; transition-delay: 0s; }
+.intro.out { opacity: 0; visibility: hidden; transform: translate(-50%, 30px) scale(.95); filter: blur(10px); pointer-events: none; transition-duration: .7s, .7s, .7s, 0s; transition-delay: 0s, 0s, 0s, .7s; }
+.eyebrow { font-size: .72rem; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--pink-soft); margin-bottom: 10px; }
+.intro h1 {
+  font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: clamp(2.1rem, 7.4vw, 3rem); line-height: 1.08; padding: .04em .1em .12em;
+  background: linear-gradient(180deg, #fff 8%, #ffc2e1 55%, #ff5cac 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 22px rgba(255,79,163,.4));
+}
+.intro p { margin: 8px 0 20px; color: var(--ink-dim); font-size: .98rem; line-height: 1.5; }
+.intro .hint { margin: 14px 0 0; font-size: .78rem; color: var(--ink-faint); }
+
+/* ---------- Kartu pesan ---------- */
+.msgcard {
+  position: fixed; z-index: 20; left: 50%; width: min(600px, calc(100% - 28px)); padding: 18px 18px 20px;
+  bottom: calc(var(--safe-b) + 14px);
+  opacity: 0; visibility: hidden; transform: translate(-50%, 40px) scale(.95); filter: blur(10px); pointer-events: none;
+  transition: opacity .9s var(--smooth), transform 1s var(--spring), filter .9s var(--smooth), visibility 0s linear 1s;
+}
+.msgcard.in { opacity: 1; visibility: visible; transform: translate(-50%, 0) scale(1); filter: none; pointer-events: auto; transition-delay: 0s; }
+body.ui-hidden .msgcard.in { opacity: 0; transform: translate(-50%, 30px) scale(.96); pointer-events: none; }
+.msg-head { display: flex; justify-content: space-between; align-items: center; padding: 0 8px; font-size: .72rem; letter-spacing: .22em; text-transform: uppercase; color: var(--pink-soft); font-weight: 600; }
+.msg-head b { color: #fff; font-weight: 700; }
+.msg-text {
+  min-height: 3.4em; padding: 12px 10px 6px; display: grid; place-items: center; text-align: center;
+  font-family: var(--font-display); font-style: italic; font-weight: 500; font-size: clamp(1.35rem, 4.8vw, 1.9rem); line-height: 1.3; color: #fff;
+  text-shadow: 0 2px 26px rgba(255,79,163,.55);
+}
+.msg-text > span { display: block; }
+.msg-text .w { display: inline-block; opacity: 0; transform: translateY(.55em) scale(.94); filter: blur(9px); animation: wordIn .9s var(--smooth) forwards; animation-delay: calc(var(--i) * 85ms); }
+@keyframes wordIn { to { opacity: 1; transform: none; filter: blur(0); } }
+.msg-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; }
+.msg-foot .icon-btn { width: 40px; height: 40px; background: rgba(255,255,255,.07); }
+.dots { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 100px); }
+.dot { width: 8px; height: 8px; border-radius: 99px; background: rgba(255,255,255,.28); transition: width .5s var(--spring), background .3s, box-shadow .3s; padding: 0; }
+.dot.on { width: 26px; background: linear-gradient(90deg, #ff9ccd, #ff2e93); box-shadow: 0 0 12px var(--pink-glow); }
+.msg-progress { position: absolute; left: 22px; right: 22px; bottom: 7px; height: 2px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
+.msg-progress i { display: block; height: 100%; width: 100%; transform-origin: left; transform: scaleX(0); background: linear-gradient(90deg, #ff8cc8, #ff2e93); }
+@keyframes fillbar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+
+/* ---------- Panduan penggunaan ---------- */
+.guide {
+  position: fixed; z-index: 22; left: 50%; top: 50%; width: min(440px, calc(100% - 28px)); max-height: calc(100dvh - 28px - var(--safe-t) - var(--safe-b));
+  overflow-y: auto; padding: 26px 22px 22px; text-align: center;
+  opacity: 0; visibility: hidden; transform: translate(-50%, -46%) scale(.93); filter: blur(10px); pointer-events: none;
+  transition: opacity .8s var(--smooth), transform 1s var(--spring), filter .8s var(--smooth), visibility 0s linear 1s;
+}
+.guide.in { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); filter: none; pointer-events: auto; transition-delay: 0s; }
+.guide.out { opacity: 0; visibility: hidden; transform: translate(-50%, -54%) scale(.95); filter: blur(10px); pointer-events: none; transition-duration: .5s, .5s, .5s, 0s; transition-delay: 0s, 0s, 0s, .5s; }
+.guide h2 {
+  font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: clamp(1.8rem, 6vw, 2.3rem); line-height: 1.1; padding: .04em .1em .1em;
+  background: linear-gradient(180deg, #fff 8%, #ffc2e1 55%, #ff5cac 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 20px rgba(255,79,163,.4));
+}
+.steps { list-style: none; display: grid; gap: 10px; margin: 16px 0 14px; text-align: left; }
+.steps li { display: flex; gap: 14px; align-items: center; padding: 10px 12px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.guide.in .steps li { animation: stepIn .7s var(--smooth) both; animation-delay: calc(var(--i) * 90ms + 250ms); }
+@keyframes stepIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.step-ic { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, rgba(255,79,163,.85), rgba(255,46,147,.45)); box-shadow: 0 6px 18px -6px var(--pink-glow), inset 0 1px 0 rgba(255,255,255,.45); }
+.steps b { display: block; font-weight: 700; font-size: .98rem; }
+.steps small { display: block; margin-top: 1px; color: var(--ink-dim); font-size: .82rem; line-height: 1.4; }
+.guide-note { margin: 0 0 16px; font-size: .8rem; color: var(--pink-soft); }
+
+/* ---------- Ucapan yang meluncur ---------- */
+.greet { position: fixed; inset: 0; z-index: 25; display: grid; place-content: center; text-align: center; pointer-events: none; overflow: hidden; padding: 0 16px; }
+.greet span {
+  display: block; font-family: var(--font-display); font-style: italic; font-weight: 600; line-height: 1.12; padding: .02em .1em .12em; will-change: transform, opacity;
+  background: linear-gradient(180deg, #fff 10%, #ffc2e1 58%, #ff5cac 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 30px rgba(255,79,163,.65));
+}
+.greet .g1 { font-size: clamp(2.2rem, 9vw, 4.6rem); animation: slideL 6s cubic-bezier(.16, 1, .3, 1) forwards; }
+.greet .g2 { font-size: clamp(2.7rem, 12vw, 6.2rem); animation: slideR 6s cubic-bezier(.16, 1, .3, 1) .25s forwards; }
+@keyframes slideL { 0% { transform: translateX(-115vw); opacity: 0; } 20% { transform: none; opacity: 1; } 72% { transform: none; opacity: 1; animation-timing-function: cubic-bezier(.7, 0, .84, 0); } 100% { transform: translateX(115vw); opacity: 0; } }
+@keyframes slideR { 0% { transform: translateX(115vw); opacity: 0; } 20% { transform: none; opacity: 1; } 72% { transform: none; opacity: 1; animation-timing-function: cubic-bezier(.7, 0, .84, 0); } 100% { transform: translateX(-115vw); opacity: 0; } }
+
+/* ---------- Efek percikan ---------- */
+#fx { position: fixed; inset: 0; z-index: 30; pointer-events: none; overflow: hidden; }
+.spark { position: absolute; color: var(--pink); text-shadow: 0 0 14px var(--pink-glow); transform: translate(-50%, -50%); animation: sparkUp 1.05s var(--smooth) forwards; }
+@keyframes sparkUp { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% - 90px)) scale(var(--s)) rotate(var(--rot, 0deg)); } }
+
+#yt { position: fixed; right: 0; bottom: 0; width: 2px; height: 2px; opacity: .01; pointer-events: none; overflow: hidden; z-index: -1; }
+.noscript { position: fixed; inset: 0; display: grid; place-items: center; z-index: 200; background: var(--bg); color: var(--ink); text-align: center; padding: 24px; }
+
+/* ---------- Responsif ---------- */
+@media (max-width: 520px) {
+  .brand em { display: none; }
+  .brand { padding-right: 14px; }
+  .icon-btn { width: 42px; height: 42px; }
+  .intro { padding: 24px 20px 18px; }
+  .msgcard { padding: 14px 12px 18px; border-radius: 26px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .intro { padding: 16px 20px 14px; width: min(420px, 60%); }
+  .intro h1 { font-size: 1.7rem; }
+  .intro p { margin: 4px 0 12px; font-size: .88rem; }
+  .intro .hint { display: none; }
+  .msgcard { width: min(520px, calc(100% - 28px)); padding: 10px 14px 14px; }
+  .msg-text { min-height: 2.6em; font-size: 1.15rem; padding: 6px 8px 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass::after, .btn-primary::after, .loader-heart { animation: none; }
+  .msg-text .w { animation-duration: .01ms; animation-delay: 0s; }
+}
+</style>
+</head>
+
+<body>
+<!-- ============ Ikon ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2l2.3 6.7L21 11l-6.7 2.3L12 20l-2.3-6.7L3 11l6.7-2.3z"/></symbol>
+</svg>
+
+<noscript><div class="noscript">Halaman ini butuh JavaScript supaya galaksinya bisa muncul 💗</div></noscript>
+
+<div id="stage" aria-label="Galaksi 3D interaktif"></div>
+<div class="vignette"></div>
+
+<!-- ============ Loader ============ -->
+<div id="loader">
+  <div class="loader-card glass">
+    <svg class="loader-heart" viewBox="0 0 24 24"><use href="#i-heart" fill="currentColor"/></svg>
+    <div class="loader-text" id="loaderText">Menyiapkan semesta…</div>
+    <div class="loader-bar"><i id="loaderBar"></i></div>
+  </div>
+</div>
+
+<!-- ============ Bar atas ============ -->
+<header class="topbar">
+  <div class="brand glass">
+    <svg class="ic ic-fill" viewBox="0 0 24 24"><use href="#i-heart"/></svg>
+    <b id="brandName">Galaxy of Love</b><em id="brandBy"></em>
+  </div>
+  <div class="tools glass" role="toolbar" aria-label="Kontrol">
+    <button class="icon-btn" id="btnMusic" aria-label="Musik" aria-pressed="false" data-off="true" hidden>
+      <svg class="ic ic-on" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <svg class="ic ic-off" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M3 3l18 18"/></svg>
+    </button>
+    <button class="icon-btn" id="btnHelp" aria-label="Cara penggunaan">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 17.5h.01"/></svg>
+    </button>
+    <button class="icon-btn" id="btnSpin" aria-label="Putar otomatis" aria-pressed="true">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+    </button>
+    <button class="icon-btn" id="btnFull" aria-label="Layar penuh" hidden>
+      <svg class="ic" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+    </button>
+    <button class="icon-btn" id="btnUI" aria-label="Sembunyikan tampilan" aria-pressed="false" data-off="false">
+      <svg class="ic ic-on" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      <svg class="ic ic-off" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ Cara penggunaan ============ -->
+<section class="guide glass" id="guide" role="dialog" aria-labelledby="guideTitle">
+  <div class="eyebrow">Halo nciiittt</div>
+  <h2 id="guideTitle">Cara Penggunaan</h2>
+  <ul class="steps">
+    <li style="--i:0"><span class="step-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg></span><div><b>Geser</b><small>Putar galaksi ke segala arah dengan jari atau mouse.</small></div></li>
+    <li style="--i:1"><span class="step-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg></span><div><b>Cubit / scroll</b><small>Perbesar dan perkecil. Dekati untuk melihat foto-foto kecilnya.</small></div></li>
+    <li style="--i:2"><span class="step-ic"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M3.5 15.5C1 13 5 8.5 12 7M20.5 8.5C23 11 19 15.5 12 17"/></svg></span><div><b>Sentuh planet</b><small>Atau tekan tombol <i>Mulai Perjalanan</i> untuk membuka galaksinya.</small></div></li>
+    <li style="--i:3"><span class="step-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.2A8 8 0 1 1 21 12z"/></svg></span><div><b>Baca pesannya</b><small>Pesan ganti sendiri. Ketuk ‹ › di kartu bawah untuk pindah manual.</small></div></li>
+    <li style="--i:4"><span class="step-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></span><div><b>Tombol kanan atas</b><small>Musik, putar otomatis, layar penuh, sembunyikan tampilan, dan bantuan ini.</small></div></li>
+  </ul>
+  <p class="guide-note">Nyalakan volume untuk pengalaman terbaik 💗</p>
+  <button class="btn-primary" id="btnGuideOk"><span>Mengerti</span></button>
+</section>
+
+<!-- ============ Intro ============ -->
+<section class="intro glass" id="intro" aria-live="polite">
+  <div class="eyebrow" id="introEyebrow">Semesta kecil buat nciiitt</div>
+  <h1 id="introTitle">Galaxy of Love</h1>
+  <p id="introSub"></p>
+  <button class="btn-primary" id="btnStart">
+    <svg class="ic ic-fill" viewBox="0 0 24 24"><use href="#i-spark"/></svg>
+    <span>Mulai Perjalanan</span>
+  </button>
+  <div class="hint">atau sentuh planet di atas</div>
+</section>
+
+<!-- ============ Kartu pesan (satu ucapan satu kartu) ============ -->
+<section class="msgcard glass" id="msgCard" aria-live="polite">
+  <div class="msg-head"><span>Pesan buat nciiitt</span><span><b id="msgIdx">1</b> / <span id="msgTotal">1</span></span></div>
+  <p class="msg-text" id="msgText"></p>
+  <div class="msg-foot">
+    <button class="icon-btn" id="btnPrev" aria-label="Pesan sebelumnya"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+    <div class="dots" id="dots"></div>
+    <button class="icon-btn" id="btnNext" aria-label="Pesan berikutnya"><svg class="ic" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+  </div>
+  <div class="msg-progress"><i id="msgBar"></i></div>
+</section>
+
+<div id="fx"></div>
+<div id="yt"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ==========================================================================
+   ★★★  PENGATURAN  —  EDIT DI SINI SAJA  ★★★
+   ========================================================================== */
+const NAMA = 'Pais';                       // nama kamu (tampil di judul & pesan pertama)
+
+const CONFIG = {
+  nama: NAMA,
+  judul: 'Galaxy of Love',
+  subjudul: 'Sebuah semesta kecil, dibuat khusus buat nciiitt.',
+  panggilan: 'nciiittkuuu',                 // dipakai di ucapan "Good morning/afternoon/evening/night ..." yang meluncur
+
+  // Setiap ucapan dipisah satu per satu.
+  // 1 ucapan  =  1 cincin teks yang mengorbit planet  +  1 kartu pesan.
+  // Tambah / hapus / ubah baris sesukamu (boleh sampai 12 ucapan).
+  pesan: [
+    'Galaxy of Love from ' + NAMA,
+    'Mundur dikit cobaaa, cantiknyaa kelewataaann',
+    'Kamu ga kasian apa sama akuu?, gara gara kamu kemanisan akunya jadi diabeteeess',
+    'Kamu itu semestakuuu',
+    'Makasiii yaaa udaa hadir di hidupkuuu',
+    'Sama aku terus yaaaaww',
+    'lopyuuuu',
+  ],
+
+  // Foto yang bertebaran di galaksi. Boleh banyak.
+  // 10 foto. File harus satu folder dengan index.html (atau tulis path-nya, mis. 'images/img1.jpg').
+  // Foto yang filenya tidak ada akan dilewati otomatis.
+  foto: ['img1.jpg', 'img2.jpg', 'img3.jpg', 'img4.jpg', 'img5.jpg', 'img6.jpg', 'img7.jpg', 'img8.jpg', 'img9.jpg', 'img10.jpg'],
+
+  musik: {
+    youtubeId: '',             // (opsional) ID video YouTube, dipakai kalau 'file' kosong
+    mulai: 227,                // detik mulai
+    selesai: 261,              // detik selesai (lalu diulang)
+    file: 'luplup.mp3',        // file musik lokal, satu folder dengan index.html
+    volume: 0.85,
+  },
+
+  detikPerPesan: 6.5,          // ganti pesan otomatis tiap sekian detik
+};
+/* ========================================================================== */
+
+
+/* ---------- util ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
+const easeInOut = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+/* ---------- isi teks UI dari CONFIG ---------- */
+document.title = `${CONFIG.judul} · ${CONFIG.nama}`;
+$('#brandName').textContent = CONFIG.judul;
+$('#brandBy').textContent = 'by ' + CONFIG.nama;
+$('#introTitle').textContent = CONFIG.judul;
+$('#introSub').textContent = CONFIG.subjudul;
+
+const loaderText = $('#loaderText'), loaderBar = $('#loaderBar');
+const setProgress = (p, txt) => { loaderBar.style.width = Math.round(clamp(p, 0, 1) * 100) + '%'; if (txt) loaderText.textContent = txt; };
+const fatal = msg => { loaderText.textContent = msg; loaderBar.style.width = '100%'; loaderBar.style.background = '#ff2e93'; };
+
+/* ---------- efek kilau kaca mengikuti pointer ---------- */
+document.addEventListener('pointermove', e => {
+  const g = e.target.closest && e.target.closest('.glass');
+  if (!g) return;
+  const r = g.getBoundingClientRect();
+  g.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  g.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}, { passive: true });
+
+/* ==========================================================================
+   SHADER
+   ========================================================================== */
+const GALAXY_VS = /* glsl */`
+  attribute vec3 aColor; attribute float aSize; attribute float aSeed;
+  uniform float uTime; uniform float uPR; uniform float uSizeMul; uniform float uWaveR; uniform float uWobble;
+  varying vec3 vColor;
+  void main(){
+    vec3 p = position;
+    float rr = length(p.xz);
+    p.y += sin(uTime * 0.45 + aSeed * 60.0 + rr * 0.06) * uWobble;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    float tw = 0.72 + 0.28 * sin(uTime * (0.9 + fract(aSeed * 13.7) * 2.2) + aSeed * 120.0);
+    float wave = exp(-pow((rr - uWaveR) / 9.0, 2.0)) * step(0.0, uWaveR);
+    vColor = aColor * (tw + wave * 2.4);
+    float size = aSize * uSizeMul * (1.0 + wave * 0.9);
+    gl_PointSize = clamp(size * uPR * (320.0 / -mv.z), 1.3 * uPR, 46.0 * uPR);
+    gl_Position = projectionMatrix * mv;
+  }`;
+const GALAXY_FS = /* glsl */`
+  uniform float uOpacity; varying vec3 vColor;
+  void main(){
+    float d = length(gl_PointCoord - 0.5) * 2.0;
+    if (d > 1.0) discard;
+    float glow = pow(1.0 - d, 2.0);
+    float core = pow(1.0 - d, 7.0);
+    gl_FragColor = vec4(vColor + vec3(core * 0.9), glow * uOpacity);
+  }`;
+
+const PHOTO_VS = /* glsl */`
+  attribute vec3 aOffset; attribute float aScale; attribute float aSeed;
+  uniform float uTime; uniform float uAspect;
+  varying vec2 vUv; varying float vDist; varying float vSeed;
+  void main(){
+    vec3 p = aOffset;
+    p.y += sin(uTime * 0.5 + aSeed * 50.0) * 0.6;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    float s = aScale * (1.0 + 0.04 * sin(uTime * 0.8 + aSeed * 30.0));
+    float ang = (aSeed - 0.5) * 0.6;
+    mat2 R = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
+    mv.xy += R * (position.xy * vec2(uAspect, 1.0)) * s;
+    vUv = uv; vDist = -mv.z; vSeed = aSeed;
+    gl_Position = projectionMatrix * mv;
+  }`;
+const PHOTO_FS = /* glsl */`
+  uniform sampler2D uMap; uniform float uAspect; uniform float uTime; uniform float uOpacity; uniform vec3 uPink;
+  varying vec2 vUv; varying float vDist; varying float vSeed;
+  void main(){
+    vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0);
+    vec2 b = vec2(uAspect, 1.0) * 0.5;
+    float rad = 0.075;
+    vec2 q = abs(p) - b + rad;
+    float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
+    float mask = 1.0 - smoothstep(-0.006, 0.006, sd);
+    if (mask < 0.01) discard;
+    vec3 tex = texture2D(uMap, vUv).rgb;
+    float rim = smoothstep(-0.03, -0.006, sd);
+    float s = 1.0 - abs((vUv.x + (1.0 - vUv.y)) - 1.0 - 0.35 * sin(uTime * 0.6 + vSeed * 6.28)) * 5.0;
+    vec3 col = tex + clamp(s, 0.0, 1.0) * 0.14;
+    col = mix(col, uPink * 1.1 + 0.12, rim * 0.85);
+    float far = smoothstep(40.0, 150.0, vDist);
+    col = mix(col, col * uPink * 1.5 + uPink * 0.12, far * 0.35);
+    float tw = 0.82 + 0.18 * sin(uTime * 1.3 + vSeed * 40.0);
+    gl_FragColor = vec4(col, mask * uOpacity * mix(1.0, tw, far));
+  }`;
+
+const PLANET_VS = /* glsl */`
+  varying vec3 vObj; varying vec3 vN; varying vec3 vV;
+  void main(){
+    vObj = position;
+    vN = normalize(normalMatrix * normal);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vV = -mv.xyz;
+    gl_Position = projectionMatrix * mv;
+  }`;
+const PLANET_FS = /* glsl */`
+  uniform float uTime; varying vec3 vObj; varying vec3 vN; varying vec3 vV;
+  float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+  float noise(vec3 x){
+    vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(hash(i + vec3(0.0,0.0,0.0)), hash(i + vec3(1.0,0.0,0.0)), f.x),
+                   mix(hash(i + vec3(0.0,1.0,0.0)), hash(i + vec3(1.0,1.0,0.0)), f.x), f.y),
+               mix(mix(hash(i + vec3(0.0,0.0,1.0)), hash(i + vec3(1.0,0.0,1.0)), f.x),
+                   mix(hash(i + vec3(0.0,1.0,1.0)), hash(i + vec3(1.0,1.0,1.0)), f.x), f.y), f.z);
+  }
+  float fbm(vec3 p){ float v = 0.0; float a = 0.5; for (int i = 0; i < 4; i++){ v += a * noise(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); a *= 0.5; } return v; }
+  void main(){
+    vec3 N = normalize(vN); vec3 V = normalize(vV);
+    float ndv = max(dot(N, V), 0.0);
+    float fres = pow(1.0 - ndv, 3.0);
+    vec3 q = normalize(vObj) * 2.0;
+    float t = uTime * 0.12;
+    vec3 warp = vec3(fbm(q + vec3(0.0, t, 0.0)), fbm(q + vec3(5.2, 1.3, -t)), fbm(q + vec3(-t, 8.1, 2.4)));
+    float f = fbm(q * 1.4 + warp * 1.8 + t);
+    float band = sin((vObj.y * 0.28 + f * 4.0) * 3.0 + uTime * 0.35) * 0.5 + 0.5;
+    vec3 deep = vec3(0.05, 0.0, 0.03);
+    vec3 mid  = vec3(0.55, 0.04, 0.30);
+    vec3 hot  = vec3(1.0, 0.22, 0.58);
+    vec3 lite = vec3(1.0, 0.78, 0.90);
+    vec3 col = mix(deep, mid, smoothstep(0.25, 0.6, f));
+    col = mix(col, hot, smoothstep(0.5, 0.85, f) * 0.9);
+    col = mix(col, lite, pow(band, 6.0) * smoothstep(0.45, 0.8, f) * 0.6);
+    vec3 L = normalize(vec3(-0.5, 0.65, 0.6));
+    float diff = max(dot(N, L), 0.0);
+    col *= 0.45 + 0.75 * diff;
+    vec3 H = normalize(L + V);
+    col += vec3(1.0, 0.92, 0.96) * pow(max(dot(N, H), 0.0), 90.0) * 0.9;
+    col += vec3(1.0, 0.25, 0.6) * fres * 1.1;
+    col += vec3(1.0, 0.4, 0.7) * pow(1.0 - ndv, 1.5) * 0.1;
+    gl_FragColor = vec4(col, 1.0);
+  }`;
+const SHELL_FS = /* glsl */`
+  varying vec3 vObj; varying vec3 vN; varying vec3 vV;
+  void main(){
+    vec3 N = normalize(vN); vec3 V = normalize(vV);
+    float fr = pow(1.0 - max(dot(N, V), 0.0), 2.5);
+    vec3 L = normalize(vec3(-0.5, 0.65, 0.6));
+    float spec = pow(max(dot(N, normalize(L + V)), 0.0), 140.0);
+    float cres = smoothstep(0.55, 0.0, length(N.xy - vec2(-0.42, 0.5))) * 0.16;
+    vec3 col = vec3(1.0, 0.35, 0.7) * fr * 0.9 + vec3(1.0) * spec * 1.2 + vec3(1.0, 0.9, 0.95) * cres;
+    gl_FragColor = vec4(col, clamp(fr * 0.8 + spec + cres, 0.0, 1.0));
+  }`;
+const ATMOS_FS = /* glsl */`
+  varying vec3 vObj; varying vec3 vN; varying vec3 vV;
+  void main(){
+    float k = clamp(-dot(normalize(vN), vec3(0.0, 0.0, 1.0)), 0.0, 1.0);
+    float i = pow(k, 1.6) * 1.6;
+    gl_FragColor = vec4(vec3(1.0, 0.28, 0.62) * i, i);
+  }`;
+
+const RING_VS = /* glsl */`
+  varying vec2 vUv;
+  void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const RING_FS = /* glsl */`
+  uniform sampler2D uMap; uniform float uRepeat; uniform float uScroll; uniform float uBoost;
+  varying vec2 vUv;
+  void main(){
+    vec4 t = texture2D(uMap, vec2(vUv.x * uRepeat + uScroll, vUv.y));
+    float side = gl_FrontFacing ? 1.0 : 0.45;
+    vec3 col = t.rgb * (1.0 + uBoost * 0.55) + vec3(1.0, 0.3, 0.65) * uBoost * t.a * 0.25;
+    gl_FragColor = vec4(col, t.a * side * (0.88 + uBoost * 0.12));
+  }`;
+
+const STREAK_VS = /* glsl */`
+  uniform vec3 uHead; uniform vec3 uTail; uniform float uWidth;
+  varying vec2 vP;
+  void main(){
+    vec3 h = (viewMatrix * vec4(uHead, 1.0)).xyz;
+    vec3 t = (viewMatrix * vec4(uTail, 1.0)).xyz;
+    float u = uv.x; float v = uv.y * 2.0 - 1.0;
+    vec3 p = mix(t, h, u);
+    vec2 d = h.xy - t.xy;
+    vec2 dn = length(d) > 0.0001 ? normalize(d) : vec2(1.0, 0.0);
+    p.xy += vec2(-dn.y, dn.x) * v * uWidth * (0.15 + 0.85 * u);
+    vP = vec2(u, v);
+    gl_Position = projectionMatrix * vec4(p, 1.0);
+  }`;
+const STREAK_FS = /* glsl */`
+  uniform float uAlpha; varying vec2 vP;
+  void main(){
+    float u = vP.x; float v = abs(vP.y);
+    float body = pow(u, 2.2) * (1.0 - smoothstep(0.0, 1.0, v));
+    float head = smoothstep(0.9, 1.0, u) * (1.0 - v);
+    vec3 col = mix(vec3(1.0, 0.35, 0.7), vec3(1.0, 0.92, 0.96), u * u);
+    gl_FragColor = vec4(col, (body * 0.9 + head) * uAlpha);
+  }`;
+
+/* ==========================================================================
+   UTAMA
+   ========================================================================== */
+async function main() {
+  /* pipeline warna "mentah": warna hex dipakai apa adanya oleh shader */
+  THREE.ColorManagement.enabled = false;
+
+  /* ----- profil perangkat ----- */
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const mobile = coarse || Math.min(innerWidth, innerHeight) < 600;
+  const lowEnd = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+  const Q = {
+    galaxy: mobile ? (lowEnd ? 45000 : 72000) : (lowEnd ? 95000 : 160000),
+    cards:  mobile ? 320 : 820,
+    stars:  mobile ? 6500 : 16000,
+    nebula: mobile ? 10 : 18,
+    font:   mobile ? 110 : 150,
+    cardScale: mobile ? 1.45 : 1,
+  };
+
+  /* ----- renderer ----- */
+  const stage = $('#stage');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({
+      antialias: !(mobile && (devicePixelRatio || 1) >= 2),
+      alpha: false, stencil: false, powerPreference: 'high-performance',
+    });
+  } catch (e) { fatal('Perangkat/browser ini belum mendukung WebGL 😢'); return; }
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+  renderer.setClearColor(0x040105, 1);
+  let pr = Math.min(devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(pr);
+  stage.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(58, 1, 0.5, 4000);
+  const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+  /* uniform bersama */
+  const U = {
+    time: { value: 0 }, pr: { value: pr }, opacity: { value: 0.14 },
+    starOpacity: { value: 0.6 }, waveR: { value: -1 },
+  };
+
+  function resize() {
+    const w = Math.max(1, stage.clientWidth), h = Math.max(1, stage.clientHeight);
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  /* ----- font + foto ----- */
+  setProgress(0.12, 'Memuat huruf…');
+  const fontsReady = Promise.race([
+    Promise.all([document.fonts.load('800 60px Outfit'), document.fonts.load('italic 500 40px "Playfair Display"')]).catch(() => {}),
+    new Promise(r => setTimeout(r, 2500)),
+  ]);
+
+  const maxPhotoH = mobile ? 1024 : 1536;   // perkecil foto besar supaya hemat memori
+  const loadTex = url => new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, maxPhotoH / img.naturalHeight);
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, c.width, c.height);
+      res(new THREE.CanvasTexture(c));
+    };
+    img.onerror = () => res(null);
+    img.src = url;
+  });
+  setProgress(0.2, 'Memuat foto-foto kenangan…');
+  const photoTexs = (await Promise.all((CONFIG.foto || []).map(loadTex))).filter(Boolean);
+  photoTexs.forEach(t => { t.anisotropy = maxAniso; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; });
+  await fontsReady;
+  setProgress(0.45, 'Menyalakan bintang-bintang…');
+  await new Promise(r => setTimeout(r, 30));
+
+  /* ----- tekstur glow (sprite) ----- */
+  function glowTex(stops) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+    stops.forEach(([o, col]) => g.addColorStop(o, col));
+    x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+    return new THREE.CanvasTexture(c);
+  }
+  const softGlow = glowTex([[0, 'rgba(255,255,255,1)'], [.25, 'rgba(255,255,255,.38)'], [.6, 'rgba(255,255,255,.08)'], [1, 'rgba(255,255,255,0)']]);
+
+  /* ----- warna palet ----- */
+  const cLight = new THREE.Color('#ffd3ea'), cHot = new THREE.Color('#ff3f9d'), cDeep = new THREE.Color('#7a1050'), cSpark = new THREE.Color('#fff4f9');
+  const pointMats = [];
+  function pointMat(opts) {
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: U.time, uPR: U.pr, uOpacity: opts.opacity, uSizeMul: { value: opts.size },
+        uWaveR: opts.wave || { value: -1 }, uWobble: { value: opts.wobble },
+      },
+      vertexShader: GALAXY_VS, fragmentShader: GALAXY_FS,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    });
+    pointMats.push(m);
+    return m;
+  }
+
+  /* ==========================================================
+     GALAKSI
+     ========================================================== */
+  const ARMS = 5, R_IN = 22, R_OUT = 112, SPIN = 0.07;
+  const galaxyGroup = new THREE.Group();
+  scene.add(galaxyGroup);
+
+  function spiralPoint(r, jitter = 1) {
+    const arm = Math.floor(Math.random() * ARMS);
+    const a = arm / ARMS * TAU + (r - R_IN) * SPIN;
+    const sp = k => (Math.random() < .5 ? -1 : 1) * Math.pow(Math.random(), 3) * k;
+    return [
+      Math.cos(a) * r + sp(.3 * r + 2) * jitter,
+      sp(.1 * r + 1) * .6 * jitter,
+      Math.sin(a) * r + sp(.3 * r + 2) * jitter,
+    ];
+  }
+
+  {
+    const N = Q.galaxy, bulge = Math.floor(N * 0.12);
+    const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N), sed = new Float32Array(N);
+    const tmp = new THREE.Color();
+    for (let i = 0; i < N; i++) {
+      let x, y, z, t;
+      if (i < bulge) { // gumpalan terang di sekitar planet
+        const r = R_IN - 10 + Math.pow(Math.random(), 1.8) * 26;
+        const th = Math.random() * TAU, ph = Math.acos(rand(-1, 1));
+        x = r * Math.sin(ph) * Math.cos(th); z = r * Math.sin(ph) * Math.sin(th); y = r * Math.cos(ph) * 0.32;
+        t = 0;
+      } else {
+        const r = R_IN + Math.pow(Math.random(), 1.35) * (R_OUT - R_IN);
+        [x, y, z] = spiralPoint(r);
+        t = (r - R_IN) / (R_OUT - R_IN);
+      }
+      pos.set([x, y, z], i * 3);
+      if (t < .5) tmp.copy(cLight).lerp(cHot, t * 2); else tmp.copy(cHot).lerp(cDeep, (t - .5) * 2);
+      const spark = Math.random() < 0.05;
+      if (spark) tmp.copy(cSpark);
+      tmp.multiplyScalar(rand(.55, 1) * (1 - t * .25));
+      col.set([tmp.r, tmp.g, tmp.b], i * 3);
+      siz[i] = spark ? rand(1.8, 2.8) : .55 + Math.pow(Math.random(), 2) * 1.4;
+      sed[i] = Math.random();
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aSize', new THREE.BufferAttribute(siz, 1));
+    g.setAttribute('aSeed', new THREE.BufferAttribute(sed, 1));
+    const pts = new THREE.Points(g, pointMat({ opacity: U.opacity, size: 1.0, wave: U.waveR, wobble: 0.35 }));
+    pts.frustumCulled = false;
+    galaxyGroup.add(pts);
+  }
+
+  /* awan nebula halus */
+  const nebulaSprites = [];
+  {
+    const tints = ['#ff2e93', '#ff6bb4', '#c2186f', '#ff8cc8', '#9c1160'];
+    for (let i = 0; i < Q.nebula; i++) {
+      const r = rand(R_IN, R_OUT * .9);
+      const [x, y, z] = spiralPoint(r, 1.6);
+      const m = new THREE.SpriteMaterial({ map: softGlow, color: new THREE.Color(tints[i % tints.length]), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+      const s = new THREE.Sprite(m);
+      s.position.set(x, y * 1.5, z);
+      const sc = rand(50, 120); s.scale.set(sc, sc, 1);
+      s.userData.base = rand(.05, .13);
+      galaxyGroup.add(s); nebulaSprites.push(s);
+    }
+  }
+
+  /* bintang latar */
+  {
+    const N = Q.stars;
+    const pos = new Float32Array(N * 3), col = new Float32Array(N * 3), siz = new Float32Array(N), sed = new Float32Array(N);
+    const tmp = new THREE.Color();
+    for (let i = 0; i < N; i++) {
+      const r = rand(380, 1200), th = Math.random() * TAU, ph = Math.acos(rand(-1, 1));
+      pos.set([r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th)], i * 3);
+      tmp.set('#ffffff').lerp(cLight, Math.random() * .8).multiplyScalar(rand(.5, 1));
+      col.set([tmp.r, tmp.g, tmp.b], i * 3);
+      siz[i] = rand(.9, 2.4); sed[i] = Math.random();
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aSize', new THREE.BufferAttribute(siz, 1));
+    g.setAttribute('aSeed', new THREE.BufferAttribute(sed, 1));
+    const s = new THREE.Points(g, pointMat({ opacity: U.starOpacity, size: 1.6, wobble: 0 }));
+    s.frustumCulled = false;
+    scene.add(s);
+  }
+
+  /* foto-foto kecil bertebaran seperti bintang */
+  const photoMats = [];
+  if (photoTexs.length) {
+    const per = Math.max(40, Math.floor(Q.cards / photoTexs.length));
+    photoTexs.forEach(tex => {
+      const aspect = tex.image.width / tex.image.height;
+      const base = new THREE.PlaneGeometry(1, 1);
+      const geo = new THREE.InstancedBufferGeometry();
+      geo.index = base.index;
+      geo.setAttribute('position', base.getAttribute('position'));
+      geo.setAttribute('uv', base.getAttribute('uv'));
+      const off = new Float32Array(per * 3), sc = new Float32Array(per), sd = new Float32Array(per);
+      for (let i = 0; i < per; i++) {
+        const r = R_IN + 6 + Math.pow(Math.random(), 1.15) * (R_OUT - R_IN - 18);
+        const p = spiralPoint(r, 1.15);
+        off.set(p, i * 3);
+        sc[i] = rand(3.2, 6.6) * Q.cardScale * (Math.random() < .1 ? 1.5 : 1);
+        sd[i] = Math.random();
+      }
+      geo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(off, 3));
+      geo.setAttribute('aScale', new THREE.InstancedBufferAttribute(sc, 1));
+      geo.setAttribute('aSeed', new THREE.InstancedBufferAttribute(sd, 1));
+      geo.instanceCount = per;
+      const mat = new THREE.ShaderMaterial({
+        uniforms: { uMap: { value: tex }, uAspect: { value: aspect }, uTime: U.time, uOpacity: U.opacity, uPink: { value: new THREE.Color('#ff4fa3') } },
+        vertexShader: PHOTO_VS, fragmentShader: PHOTO_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.frustumCulled = false; mesh.renderOrder = 2;
+      galaxyGroup.add(mesh);
+      photoMats.push(mat);
+    });
+  }
+
+  /* bintang jatuh */
+  const streaks = [];
+  {
+    const geo = new THREE.PlaneGeometry(1, 1);
+    const nStreak = mobile ? 5 : 9;
+    for (let i = 0; i < nStreak; i++) {
+      const mat = new THREE.ShaderMaterial({
+        uniforms: { uHead: { value: new THREE.Vector3() }, uTail: { value: new THREE.Vector3() }, uWidth: { value: 1.8 }, uAlpha: { value: 0 } },
+        vertexShader: STREAK_VS, fragmentShader: STREAK_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      });
+      const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = 5; scene.add(m);
+      streaks.push({ mesh: m, mat, life: 0, dur: 1, wait: rand(.2, 2.5), head: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 0, len: 0 });
+    }
+  }
+  function spawnStreak(s) {
+    const r = rand(130, 240), a = rand(0, TAU);
+    s.head.set(Math.cos(a) * r, rand(-70, 90), Math.sin(a) * r);
+    s.dir.set(rand(-1, 1), rand(-.55, .1), rand(-1, 1)).normalize();
+    s.speed = rand(130, 210); s.len = rand(40, 80); s.dur = rand(1.1, 1.8); s.life = 0;
+    s.mat.uniforms.uWidth.value = rand(1.4, 2.4);
+  }
+
+  /* ==========================================================
+     PLANET KACA + CINCIN TEKS
+     ========================================================== */
+  const PR = 10;
+  const planetGroup = new THREE.Group();
+  scene.add(planetGroup);
+
+  const planetMat = new THREE.ShaderMaterial({ uniforms: { uTime: U.time }, vertexShader: PLANET_VS, fragmentShader: PLANET_FS });
+  const planet = new THREE.Mesh(new THREE.SphereGeometry(PR, 96, 96), planetMat);
+  planetGroup.add(planet);
+
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(PR * 1.025, 64, 64),
+    new THREE.ShaderMaterial({ vertexShader: PLANET_VS, fragmentShader: SHELL_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  shell.renderOrder = 6; planetGroup.add(shell);
+
+  const atmos = new THREE.Mesh(
+    new THREE.SphereGeometry(PR * 1.26, 64, 64),
+    new THREE.ShaderMaterial({ vertexShader: PLANET_VS, fragmentShader: ATMOS_FS, transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending })
+  );
+  atmos.renderOrder = 1; planetGroup.add(atmos);
+
+  const halo1 = new THREE.Sprite(new THREE.SpriteMaterial({ map: softGlow, color: new THREE.Color('#ff2e93'), transparent: true, opacity: .55, depthWrite: false, blending: THREE.AdditiveBlending }));
+  halo1.scale.set(58, 58, 1); halo1.renderOrder = -2; planetGroup.add(halo1);
+  const halo2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: softGlow, color: new THREE.Color('#ffd0e8'), transparent: true, opacity: .22, depthWrite: false, blending: THREE.AdditiveBlending }));
+  halo2.scale.set(30, 30, 1); halo2.renderOrder = -1; planetGroup.add(halo2);
+
+  /* cincin teks: satu ucapan = satu cincin */
+  const msgs = (CONFIG.pesan && CONFIG.pesan.length ? CONFIG.pesan : ['I love you']).slice(0, 12);
+  const rings = [];
+  function ringCanvas(text, fontPx) {
+    const font = `800 ${fontPx}px Outfit, system-ui, -apple-system, "Segoe UI", sans-serif`;
+    const m = document.createElement('canvas').getContext('2d'); m.font = font;
+    const mw = m.measureText(text).width, hw = m.measureText('♥').width;
+    const gap = fontPx * 0.6;
+    const W = Math.ceil(gap + mw + gap + hw + gap), H = Math.ceil(fontPx * 1.8);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.font = font; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+    const y = H / 2 + fontPx * 0.34;
+    const grad = x.createLinearGradient(0, H / 2 - fontPx * .5, 0, H / 2 + fontPx * .45);
+    grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#ffc4e1');
+    x.fillStyle = grad; x.shadowColor = 'rgba(255,60,160,.95)'; x.shadowBlur = fontPx * .28; x.fillText(text, gap, y);
+    x.shadowColor = 'rgba(255,150,205,.9)'; x.shadowBlur = fontPx * .09; x.fillText(text, gap, y);
+    const hx = gap + mw + gap;
+    x.fillStyle = '#ff4fa3'; x.shadowColor = 'rgba(255,30,140,1)'; x.shadowBlur = fontPx * .3; x.fillText('♥', hx, y);
+    x.shadowBlur = fontPx * .1; x.fillText('♥', hx, y);
+    return { canvas: c, W, H };
+  }
+  {
+    const maxTex = Math.min(renderer.capabilities.maxTextureSize, 4096);
+    const n = msgs.length;
+    msgs.forEach((text, i) => {
+      const R = 14.5 + i * 4.1, circ = TAU * R;
+      let fontPx = Q.font, t = ringCanvas(text, fontPx);
+      if (t.W > maxTex) { fontPx = Math.floor(fontPx * maxTex / t.W * .97); t = ringCanvas(text, fontPx); }
+      let fh = 2.5, ppu = fontPx / fh, segWorld = t.W / ppu;
+      if (segWorld > circ * .96) { fh *= circ * .96 / segWorld; ppu = fontPx / fh; segWorld = t.W / ppu; }
+      const rep = Math.max(1, Math.round(circ / segWorld));
+      fh *= (circ / rep) / segWorld;           // pas melingkar tanpa distorsi
+      ppu = fontPx / fh;
+      const cylH = t.H / ppu;
+
+      const tex = new THREE.CanvasTexture(t.canvas);
+      tex.wrapS = THREE.RepeatWrapping; tex.anisotropy = maxAniso;
+      const mat = new THREE.ShaderMaterial({
+        uniforms: { uMap: { value: tex }, uRepeat: { value: rep }, uScroll: { value: 0 }, uBoost: { value: 0 } },
+        vertexShader: RING_VS, fragmentShader: RING_FS, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(R, R, cylH, 160, 1, true), mat);
+      mesh.rotation.x = 0.25 + (n > 1 ? i * (Math.PI * .62 / (n - 1)) : .4);
+      mesh.renderOrder = 4;
+      const holder = new THREE.Group(); holder.add(mesh); holder.rotation.y = i * 1.3;
+      planetGroup.add(holder);
+      rings.push({ holder, mat, boost: 0, target: 0, dir: i % 2 ? -1 : 1, spin: .05 + i * .004, scroll: .035 + i * .006 });
+    });
+  }
+
+  /* ==========================================================
+     KAMERA & KONTROL
+     ========================================================== */
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.06;
+  controls.enablePan = false;
+  controls.minDistance = 14; controls.maxDistance = 450;
+  controls.rotateSpeed = 0.55; controls.zoomSpeed = 0.8;
+  controls.autoRotate = true; controls.autoRotateSpeed = 0.55;
+  controls.enabled = false;
+
+  const fitDist = R => R / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(1, camera.aspect));
+  function introPose() {
+    const d = fitDist(25);
+    const portrait = camera.aspect < 1;
+    return { pos: new THREE.Vector3(0, d * .26, d * .965), target: new THREE.Vector3(0, -d * (portrait ? .17 : .085), 0) };
+  }
+  function endPose() {
+    const d = fitDist(mobile ? 66 : 76);
+    return { pos: new THREE.Vector3(-.42, .62, .66).normalize().multiplyScalar(d), target: new THREE.Vector3(0, 0, 0) };
+  }
+
+  /* ==========================================================
+     UI: intro, pesan, musik, tombol
+     ========================================================== */
+  const introEl = $('#intro'), msgCard = $('#msgCard');
+  const body = document.body;
+  let started = false, flight = null, fadeTarget = 0.14, fade = 0.14, waveStart = -1;
+
+  /* --- kartu pesan --- */
+  const msgText = $('#msgText'), msgIdx = $('#msgIdx'), msgBar = $('#msgBar'), dotsEl = $('#dots');
+  $('#msgTotal').textContent = msgs.length;
+  const dots = msgs.map((_, i) => {
+    const b = document.createElement('button'); b.className = 'dot'; b.setAttribute('aria-label', 'Pesan ' + (i + 1));
+    b.addEventListener('click', () => showMsg(i)); dotsEl.appendChild(b); return b;
+  });
+  let cur = 0, msgTimer = 0;
+  const MSG_MS = Math.max(2500, (CONFIG.detikPerPesan || 6.5) * 1000);
+  function showMsg(i) {
+    cur = (i + msgs.length) % msgs.length;
+    msgText.textContent = '';
+    const wrap = document.createElement('span');
+    msgs[cur].split(/\s+/).forEach((w, k, arr) => {
+      const s = document.createElement('span'); s.className = 'w'; s.style.setProperty('--i', k); s.textContent = w;
+      wrap.appendChild(s); if (k < arr.length - 1) wrap.appendChild(document.createTextNode(' '));
+    });
+    msgText.appendChild(wrap);
+    msgIdx.textContent = cur + 1;
+    dots.forEach((d, k) => d.classList.toggle('on', k === cur));
+    rings.forEach((r, k) => { r.target = k === cur ? 1 : 0; });
+    msgBar.style.animation = 'none'; void msgBar.offsetWidth;
+    msgBar.style.animation = `fillbar ${MSG_MS}ms linear forwards`;
+    clearTimeout(msgTimer); msgTimer = setTimeout(() => showMsg(cur + 1), MSG_MS);
+  }
+  $('#btnPrev').addEventListener('click', () => showMsg(cur - 1));
+  $('#btnNext').addEventListener('click', () => showMsg(cur + 1));
+  addEventListener('keydown', e => {
+    if (!started) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (guideOpen) closeGuide(); else begin(); } return; }
+    if (e.key === 'ArrowRight') showMsg(cur + 1);
+    if (e.key === 'ArrowLeft') showMsg(cur - 1);
+  });
+
+  /* --- musik --- */
+  const M = CONFIG.musik || {};
+  const btnMusic = $('#btnMusic');
+  let audioEl = null, yt = null, ytReady = false, wantPlay = false, ytLoop = 0;
+  const setMusicUI = on => { btnMusic.dataset.off = on ? 'false' : 'true'; btnMusic.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+  if (M.file) {
+    btnMusic.hidden = false;
+    audioEl = new Audio(M.file); audioEl.loop = true; audioEl.volume = M.volume ?? .85; audioEl.preload = 'auto';
+    audioEl.addEventListener('play', () => setMusicUI(true)); audioEl.addEventListener('pause', () => setMusicUI(false));
+  } else if (M.youtubeId) {
+    btnMusic.hidden = false;
+    const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; tag.async = true;
+    document.head.appendChild(tag);
+    window.onYouTubeIframeAPIReady = () => {
+      yt = new YT.Player('yt', {
+        width: '200', height: '200', videoId: M.youtubeId,
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1, start: M.mulai || 0 },
+        events: {
+          onReady: () => { ytReady = true; yt.setVolume(Math.round((M.volume ?? .85) * 100)); if (wantPlay) yt.playVideo(); },
+          onStateChange: e => {
+            const playing = e.data === 1;
+            setMusicUI(playing || e.data === 3);
+            if (e.data === 0) { yt.seekTo(M.mulai || 0, true); yt.playVideo(); }
+            clearInterval(ytLoop);
+            if (playing && M.selesai) ytLoop = setInterval(() => { try { if (yt.getCurrentTime() >= M.selesai - .35) yt.seekTo(M.mulai || 0, true); } catch (_) {} }, 350);
+          },
+        },
+      });
+    };
+  }
+  function playMusic() {
+    wantPlay = true;
+    if (audioEl) audioEl.play().catch(() => {});
+    else if (yt && ytReady) yt.playVideo();
+  }
+  function toggleMusic() {
+    if (audioEl) { audioEl.paused ? audioEl.play().catch(() => {}) : audioEl.pause(); wantPlay = !audioEl.paused; return; }
+    if (!yt || !ytReady) { wantPlay = !wantPlay; return; }
+    if (yt.getPlayerState() === 1) { yt.pauseVideo(); wantPlay = false; } else { yt.playVideo(); wantPlay = true; }
+  }
+  btnMusic.addEventListener('click', toggleMusic);
+
+  /* --- tombol lain --- */
+  const btnSpin = $('#btnSpin');
+  btnSpin.addEventListener('click', () => {
+    controls.autoRotate = !controls.autoRotate;
+    btnSpin.setAttribute('aria-pressed', controls.autoRotate ? 'true' : 'false');
+  });
+  const btnFull = $('#btnFull');
+  const root = document.documentElement;
+  const canFull = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  if (canFull) {
+    btnFull.hidden = false;
+    btnFull.addEventListener('click', () => {
+      const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+      if (isFull) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+    });
+  }
+  const btnUI = $('#btnUI');
+  btnUI.addEventListener('click', () => {
+    const hidden = body.classList.toggle('ui-hidden');
+    btnUI.setAttribute('aria-pressed', hidden ? 'true' : 'false'); btnUI.dataset.off = hidden ? 'true' : 'false';
+  });
+
+  /* --- percikan hati --- */
+  const fx = $('#fx');
+  function burst(x, y, n = 6) {
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('span'); s.className = 'spark';
+      s.textContent = ['♥', '✦', '♡', '✧'][Math.floor(Math.random() * 4)];
+      s.style.left = x + 'px'; s.style.top = y + 'px'; s.style.fontSize = rand(13, 26) + 'px';
+      s.style.setProperty('--dx', rand(-60, 60) + 'px'); s.style.setProperty('--s', rand(.8, 1.7).toFixed(2));
+      s.style.setProperty('--rot', rand(-40, 40) + 'deg'); s.style.animationDelay = (i * 35) + 'ms';
+      fx.appendChild(s); setTimeout(() => s.remove(), 1400);
+    }
+  }
+
+  /* --- panduan penggunaan --- */
+  const guideEl = $('#guide');
+  let guideOpen = false, guideNext = null;
+  function openGuide(next) { guideOpen = true; guideNext = next || null; guideEl.classList.remove('out'); guideEl.classList.add('in'); }
+  function closeGuide() {
+    if (!guideOpen) return;
+    guideOpen = false; guideEl.classList.remove('in'); guideEl.classList.add('out');
+    const n = guideNext; guideNext = null; if (n) setTimeout(n, 450);
+  }
+  $('#btnGuideOk').addEventListener('click', closeGuide);
+  $('#btnHelp').addEventListener('click', () => (guideOpen ? closeGuide() : openGuide()));
+
+  /* --- ucapan meluncur sesuai jam --- */
+  function playGreeting() {
+    const h = new Date().getHours();
+    const w = h >= 5 && h < 11 ? 'morning' : h >= 11 && h < 17 ? 'afternoon' : h >= 17 && h < 19 ? 'evening' : 'night';
+    const box = document.createElement('div'); box.className = 'greet'; box.setAttribute('aria-live', 'polite');
+    const a = document.createElement('span'); a.className = 'g1'; a.textContent = 'Good ' + w;
+    const b = document.createElement('span'); b.className = 'g2'; b.textContent = CONFIG.panggilan;
+    box.append(a, b); document.body.appendChild(box);
+    setTimeout(() => box.remove(), 6600);          // hilang setelah selesai meluncur
+  }
+
+  /* --- mulai! --- */
+  function begin() {
+    if (started || guideOpen) return;
+    started = true;
+    body.classList.add('started');
+    introEl.classList.remove('in'); introEl.classList.add('out');
+    playMusic();
+    fadeTarget = 1;
+    waveStart = U.time.value;
+    const from = introPose(), to = endPose();
+    flight = {
+      t: 0, dur: 6.4,
+      s0: new THREE.Spherical().setFromVector3(from.pos), s1: new THREE.Spherical().setFromVector3(to.pos),
+      t0: from.target.clone(), t1: to.target.clone(), s: new THREE.Spherical(),
+    };
+    setTimeout(playGreeting, 700);
+    setTimeout(() => { msgCard.classList.add('in'); showMsg(0); }, 6700);
+  }
+  $('#btnStart').addEventListener('click', e => { burst(e.clientX, e.clientY, 7); begin(); });
+
+  /* --- sentuh planet / ketuk layar --- */
+  const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+  const hitPlanet = e => {
+    const r = renderer.domElement.getBoundingClientRect();
+    mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(mouse, camera);
+    return raycaster.intersectObject(planet).length > 0;
+  };
+  let down = null;
+  renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  renderer.domElement.addEventListener('pointerup', e => {
+    if (!down) return;
+    const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t;
+    down = null;
+    if (moved > 7 || dt > 450) return;
+    if (!started) { if (!guideOpen && hitPlanet(e)) { burst(e.clientX, e.clientY, 7); begin(); } }
+    else burst(e.clientX, e.clientY, 5);
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    renderer.domElement.style.cursor = !started ? (hitPlanet(e) ? 'pointer' : 'default') : 'grab';
+  });
+  renderer.domElement.addEventListener('pointerdown', () => { if (started) renderer.domElement.style.cursor = 'grabbing'; });
+  addEventListener('pointerup', () => { if (started) renderer.domElement.style.cursor = 'grab'; });
+
+  /* ==========================================================
+     LOOP ANIMASI
+     ========================================================== */
+  const clock = new THREE.Clock();
+  let accT = 0, accN = 0, cooldown = 4;
+  const tmpV = new THREE.Vector3();
+
+  function applyPR() {
+    renderer.setPixelRatio(pr); U.pr.value = pr; resize();
+  }
+
+  function frame() {
+    const raw = clock.getDelta();
+    const dt = Math.min(raw, 0.05);
+    U.time.value += dt;
+    const time = U.time.value;
+
+    /* kualitas adaptif: turunkan resolusi bila FPS rendah */
+    accT += Math.min(raw, .25); accN++;
+    if (accN >= 90) {
+      const avg = accT / accN; accT = 0; accN = 0;
+      if (cooldown > 0) cooldown--;
+      else if (avg > 0.027 && pr > 1) { pr = Math.max(1, pr - .25); applyPR(); cooldown = 3; }
+    }
+
+    /* fade galaksi saat mulai */
+    fade += (fadeTarget - fade) * (1 - Math.exp(-dt * 1.5));
+    U.opacity.value = fade;
+    U.starOpacity.value = 0.6 + 0.4 * ((fade - .14) / .86);
+    nebulaSprites.forEach(s => { s.material.opacity = s.userData.base * clamp((fade - .14) / .86, 0, 1) * 1.0 + s.userData.base * .1; });
+
+    /* gelombang cahaya */
+    if (waveStart >= 0) {
+      const w = (time - waveStart) * 55;
+      U.waveR.value = w < 170 ? w : -1;
+      if (w >= 170) waveStart = -1;
+    }
+
+    /* galaksi & bintang jatuh */
+    galaxyGroup.rotation.y = time * 0.035;
+    streaks.forEach(s => {
+      if (s.wait > 0) { s.wait -= dt; if (s.wait <= 0) spawnStreak(s); s.mat.uniforms.uAlpha.value = 0; return; }
+      s.life += dt;
+      const p = s.life / s.dur;
+      if (p >= 1) { s.wait = rand(.3, 2.2); s.mat.uniforms.uAlpha.value = 0; return; }
+      s.head.addScaledVector(s.dir, s.speed * dt);
+      tmpV.copy(s.dir).multiplyScalar(-s.len).add(s.head);
+      s.mat.uniforms.uHead.value.copy(s.head); s.mat.uniforms.uTail.value.copy(tmpV);
+      s.mat.uniforms.uAlpha.value = Math.sin(p * Math.PI) * (started ? 1 : .5);
+    });
+
+    /* cincin teks */
+    rings.forEach(r => {
+      r.holder.rotation.y += dt * r.spin * r.dir;
+      r.mat.uniforms.uScroll.value += dt * r.scroll * r.dir;
+      r.boost += (r.target - r.boost) * (1 - Math.exp(-dt * 4));
+      r.mat.uniforms.uBoost.value = r.boost;
+    });
+    planetGroup.position.y = Math.sin(time * .6) * .25;
+
+    /* kamera */
+    if (!started) {
+      const p = introPose();
+      camera.position.set(p.pos.x + Math.sin(time * .4) * 1.2, p.pos.y + Math.sin(time * .31) * .8, p.pos.z);
+      camera.lookAt(p.target);
+    } else if (flight) {
+      flight.t += dt;
+      const k = clamp(flight.t / flight.dur, 0, 1), e = easeInOut(k);
+      const s = flight.s;
+      s.radius = lerp(flight.s0.radius, flight.s1.radius, e);
+      s.phi = lerp(flight.s0.phi, flight.s1.phi, e);
+      s.theta = lerp(flight.s0.theta, flight.s1.theta, e) + Math.sin(k * Math.PI) * 0.55;
+      camera.position.setFromSpherical(s);
+      tmpV.lerpVectors(flight.t0, flight.t1, e);
+      camera.lookAt(tmpV);
+      if (k >= 1) {
+        controls.target.copy(flight.t1);
+        controls.enabled = true; controls.update();
+        flight = null;
+        renderer.domElement.style.cursor = 'grab';
+      }
+    } else {
+      controls.update(dt);
+    }
+
+    renderer.render(scene, camera);
+  }
+  renderer.setAnimationLoop(frame);
+
+  /* ----- siap! ----- */
+  setProgress(1, 'Siap 💗');
+  await new Promise(r => setTimeout(r, 450));
+  $('#loader').classList.add('gone');
+  body.classList.add('ready');
+  setTimeout(() => openGuide(() => introEl.classList.add('in')), 350);
+  setTimeout(() => $('#loader').remove(), 1200);
+}
+
+main().catch(err => { console.error(err); fatal('Ups, ada yang error saat memuat. Coba muat ulang halaman ya 🙏'); });
+</script>
+</body>
+</html>
